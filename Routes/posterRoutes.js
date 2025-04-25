@@ -15,7 +15,7 @@ const router = express.Router();
 
 router.post('/create-poster', createPoster);         // POST /api/posters
 router.get('/getallposter', getAllPosters); 
-router.get('/festival', getPostersByFestivalDates); 
+router.post('/festival', getPostersByFestivalDates); 
 router.get('/single-poster/:id', getSinglePoster);    // GET /api/posters/:id
 router.get('/beautyposter', getAllPostersBeauty); 
 router.get('/chemicalposter', getChemicalPosters); 
