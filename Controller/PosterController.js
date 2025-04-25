@@ -121,20 +121,31 @@ export const getSinglePoster = async (req, res) => {
 };
 
 
-// ✅ Get posters by festivalDate
+// ✅ Get posters by festivalDate from the body
 export const getPostersByFestivalDates = async (req, res) => {
-    try {
-      const { festivalDate } = req.query;
-  
-      if (!festivalDate) {
-        return res.status(400).json({ message: "Festival date is required" });
-      }
-  
-      const posters = await Poster.find({ festivalDate: new Date(festivalDate) }).sort({ createdAt: -1 });
-  
-  
-      res.status(200).json(posters);
-    } catch (error) {
-      res.status(500).json({ message: "Error fetching posters", error });
+  try {
+    const { festivalDate } = req.body; // Now, get festivalDate from the body
+
+    if (!festivalDate) {
+      return res.status(400).json({ message: "Festival date is required" });
     }
-  };
+
+    // Convert festivalDate to a JavaScript Date object
+    const parsedDate = new Date(festivalDate);
+
+    // Check if the date is valid
+    if (isNaN(parsedDate.getTime())) {
+      return res.status(400).json({ message: "Invalid date format" });
+    }
+
+    const posters = await Poster.find({ festivalDate: parsedDate }).sort({ createdAt: -1 });
+
+    if (posters.length === 0) {
+      return res.status(404).json({ message: "No posters found for this festival date" });
+    }
+
+    res.status(200).json(posters);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching posters", error });
+  }
+};
