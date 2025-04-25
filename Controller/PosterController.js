@@ -1,49 +1,39 @@
 import Poster from "../Models/Poster.js";
 // ✅ Create a new poster
 export const createPoster = async (req, res) => {
-    try {
-      const {
-        name,
-        categoryName,
-        price,
-        images,
-        description,
-        size,
-        festivalDate, // festivalDate is now optional
-        inStock,
-        tags
-      } = req.body;
-  
-      // If festivalDate is provided, convert it to a human-readable format, otherwise set it to null or default
-      const formattedFestivalDate = festivalDate 
-        ? new Date(festivalDate).toLocaleDateString('en-GB') // Format as 'dd/mm/yyyy'
-        : null; // If no festivalDate, keep it as null or you can set it to a default value like new Date()
-  
-      // Create new poster object
-      const newPoster = new Poster({
-        name,
-        categoryName,
-        price,
-        images,
-        description,
-        size,
-        festivalDate: formattedFestivalDate, // Store festivalDate if provided, otherwise null
-        inStock,
-        tags
-      });
-  
-      // Save the poster
-      const savedPoster = await newPoster.save();
-  
-      // Send response with the poster, including festivalDate if it's set
-      res.status(201).json({
-        ...savedPoster.toObject(),
-        festivalDate: formattedFestivalDate // Include festivalDate in response (it can be null)
-      });
-    } catch (error) {
-      res.status(500).json({ message: 'Error creating poster', error });
-    }
-  };
+  try {
+    const {
+      name,
+      categoryName,
+      price,
+      images,
+      description,
+      size,
+      festivalDate, // This should stay as a string
+      inStock,
+      tags
+    } = req.body;
+
+    const newPoster = new Poster({
+      name,
+      categoryName,
+      price,
+      images,
+      description,
+      size,
+      festivalDate: festivalDate || null, // Save as raw string
+      inStock,
+      tags
+    });
+
+    const savedPoster = await newPoster.save();
+
+    res.status(201).json(savedPoster);
+  } catch (error) {
+    res.status(500).json({ message: 'Error creating poster', error });
+  }
+};
+
   
   
 // ✅ Get all posters
@@ -121,24 +111,15 @@ export const getSinglePoster = async (req, res) => {
 };
 
 
-// ✅ Get posters by festivalDate from the body
 export const getPostersByFestivalDates = async (req, res) => {
   try {
-    const { festivalDate } = req.body; // Now, get festivalDate from the body
+    const { festivalDate } = req.body;
 
     if (!festivalDate) {
       return res.status(400).json({ message: "Festival date is required" });
     }
 
-    // Convert festivalDate to a JavaScript Date object
-    const parsedDate = new Date(festivalDate);
-
-    // Check if the date is valid
-    if (isNaN(parsedDate.getTime())) {
-      return res.status(400).json({ message: "Invalid date format" });
-    }
-
-    const posters = await Poster.find({ festivalDate: parsedDate }).sort({ createdAt: -1 });
+    const posters = await Poster.find({ festivalDate }).sort({ createdAt: -1 });
 
     if (posters.length === 0) {
       return res.status(404).json({ message: "No posters found for this festival date" });
@@ -149,3 +130,4 @@ export const getPostersByFestivalDates = async (req, res) => {
     res.status(500).json({ message: "Error fetching posters", error });
   }
 };
+
