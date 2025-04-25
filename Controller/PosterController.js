@@ -132,9 +132,6 @@ export const getPostersByFestivalDates = async (req, res) => {
   
       const posters = await Poster.find({ festivalDate: new Date(festivalDate) }).sort({ createdAt: -1 });
   
-      if (posters.length === 0) {
-        return res.status(404).json({ message: "No posters found for this festival date" });
-      }
   
       res.status(200).json(posters);
     } catch (error) {
