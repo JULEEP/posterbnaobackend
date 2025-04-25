@@ -4,7 +4,7 @@ import {
   createPoster,
   getAllPosters,
   getSinglePoster,
-  getPostersByFestivalDate,
+  getPostersByFestivalDates,
   getAllPostersBeauty,
   getChemicalPosters,
   getClothingPosters,
@@ -14,9 +14,9 @@ import {
 const router = express.Router();
 
 router.post('/create-poster', createPoster);         // POST /api/posters
-router.get('/getallposter', getAllPosters);         // GET /api/posters
+router.get('/getallposter', getAllPosters); 
+router.get('/festival', getPostersByFestivalDates); 
 router.get('/single-poster/:id', getSinglePoster);    // GET /api/posters/:id
-router.get('/festival', getPostersByFestivalDate); 
 router.get('/beautyposter', getAllPostersBeauty); 
 router.get('/chemicalposter', getChemicalPosters); 
 router.get('/clothingposter', getClothingPosters);

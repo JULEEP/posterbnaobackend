@@ -122,7 +122,7 @@ export const getSinglePoster = async (req, res) => {
 
 
 // ✅ Get posters by festivalDate
-export const getPostersByFestivalDate = async (req, res) => {
+export const getPostersByFestivalDates = async (req, res) => {
     try {
       const { festivalDate } = req.query;
   
