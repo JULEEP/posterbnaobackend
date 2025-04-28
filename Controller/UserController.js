@@ -430,13 +430,12 @@ export const checkUserBirthday = async (req, res) => {
 };
 
 
-//create story
-// Controller to post a story (image/video)
 export const postStory = async (req, res) => {
   try {
     const { userId } = req.params; // User ID from the URL parameter
     const { caption } = req.body;
 
+    // If no file is uploaded
     if (!req.file) {
         return res.status(400).json({ message: "Image or Video is required" });
     }
@@ -472,11 +471,72 @@ export const postStory = async (req, res) => {
         $push: { myStories: newStory._id }
     });
 
-    res.status(201).json({ message: "Story posted successfully!" });
-} catch (error) {
+    // Send the complete story data in response
+    const user = await User.findById(userId); // Fetch user data (optional)
+
+    res.status(201).json({
+      message: "Story posted successfully!",
+      story: {
+        _id: newStory._id,
+        user: user._id,
+        caption: newStory.caption,
+        image: newStory.image,
+        video: newStory.video,
+        expired_at: newStory.expired_at,
+        user_name: user.name || null,  // Optionally include user info like name
+        user_mobile: user.mobile || null  // Optional mobile number
+      }
+    });
+  } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong!" });
-}
+  }
 };
+
+
+
+
+// Controller to get all stories
+export const getAllStories = async (req, res) => {
+  try {
+    // Fetch all stories, sorted by expiration time (ascending)
+    const stories = await Story.find().sort({ expired_at: 1 });
+
+    // Return the stories
+    res.status(200).json({
+      message: "Stories fetched successfully!",
+      stories
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong!" });
+  }
+};
+
+
+// Controller to get stories by userId
+export const getUserStories = async (req, res) => {
+  try {
+    const { userId } = req.params; // Get userId from the URL parameter
+
+    // Fetch stories for the given user
+    const stories = await Story.find({ user: userId }).sort({ expired_at: 1 });
+
+    // Check if the user has any stories
+    if (stories.length === 0) {
+      return res.status(404).json({ message: "No stories found for this user." });
+    }
+
+    // Return the user's stories
+    res.status(200).json({
+      message: "User stories fetched successfully!",
+      stories
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong!" });
+  }
+};
+
 
 
