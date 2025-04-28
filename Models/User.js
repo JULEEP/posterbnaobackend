@@ -19,6 +19,13 @@ const userSchema = new mongoose.Schema({
   otp: {
     type: String,
   },
+   // Added fields as strings
+   dob: {
+    type: String, // Date of Birth as String
+  },
+  marriageAnniversaryDate: {
+    type: String, // Marriage Anniversary Date as String
+  },
   myBookings: [{
     type: Schema.Types.ObjectId,
     ref: 'Booking', // Reference to Booking model
