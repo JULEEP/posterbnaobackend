@@ -27,6 +27,22 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'default-profile-image.jpg', // Optional default image
   },
+   // other fields
+   subscribedPlans: [
+    {
+      planId: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Plan',
+      },
+      name: String,
+      originalPrice: Number,
+      offerPrice: Number,
+      discountPercentage: Number,
+      duration: String,
+      startDate: Date,
+      endDate: Date,
+    },
+  ],
 }, {
   timestamps: true  // CreatedAt and UpdatedAt fields automatically
 });

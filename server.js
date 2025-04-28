@@ -13,6 +13,7 @@ import { fileURLToPath } from 'url';  // Import the fileURLToPath method
 import { sendBirthdayWishes } from './Controller/UserController.js';
 import cron from 'node-cron';
 import Story from './Models/Story.js';
+import PlanRoutes from './Routes/PlanRoutes.js'
 
 
 
@@ -89,6 +90,8 @@ const server = http.createServer(app);
 app.use('/api/users', UserRoutes);
 app.use('/api/category', CategoryRoutes);
 app.use('/api/poster', PosterRoutes);
+app.use('/api/plans', PlanRoutes);
+
 
 
 
