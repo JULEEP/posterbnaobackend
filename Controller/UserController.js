@@ -344,13 +344,15 @@ export const getProfile = async (req, res) => {
       return res.status(404).json({ message: 'User not found!' });
     }
 
-    // Respond with user details along with subscribed plans
+    // Respond with user details along with subscribed plans and include dob and marriageAnniversaryDate
     return res.status(200).json({
       id: user._id,
       name: user.name,
       email: user.email,
       mobile: user.mobile,
       profileImage: user.profileImage,
+      dob: user.dob || null,  // Return dob or null if not present
+      marriageAnniversaryDate: user.marriageAnniversaryDate || null,  // Return marriageAnniversaryDate or null if not present
       subscribedPlans: user.subscribedPlans,  // Include subscribedPlans in the response
     });
   } catch (error) {
@@ -358,6 +360,7 @@ export const getProfile = async (req, res) => {
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 
 
