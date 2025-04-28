@@ -9,9 +9,12 @@ import {
      getProfile,
      sendSms,
      sendBirthdayWishes,
-     checkUserBirthday
+     checkUserBirthday,
+     postStory,
+     getAllStories,
+     getUserStories
     } from '../Controller/UserController.js'; // Import UserController
-
+import uploads from '../config/uploadConfig.js';
 const router = express.Router();
 
 // Registration Route
@@ -35,6 +38,10 @@ router.get('/get-profile/:id', getProfile);  // Get profile by userId
 router.post('/send-sms', sendSms);
 router.get('/send-birthday-wishes', sendBirthdayWishes);
 router.get('/check-birthday/:userId', checkUserBirthday);
+router.post('/post/:userId', uploads, postStory);
+router.get('/getAllStories', getAllStories);
+router.get('/getUserStories/:userId', getUserStories);
+
 
 
 

@@ -12,6 +12,7 @@ import PosterRoutes from './Routes/posterRoutes.js'
 import { fileURLToPath } from 'url';  // Import the fileURLToPath method
 import { sendBirthdayWishes } from './Controller/UserController.js';
 import cron from 'node-cron';
+import Story from './Models/Story.js';
 
 
 
@@ -55,6 +56,25 @@ cron.schedule('0 12 * * *', () => {
       }
     );
   });
+
+
+// Schedule a job to delete expired stories every hour
+cron.schedule('0 * * * *', async () => {  // This will run every hour
+  try {
+      console.log('⏰ Running Expired Story Deletion Job');
+      const currentDate = new Date();
+
+      // Delete stories whose expired_at is less than the current time
+      const expiredStories = await Story.deleteMany({
+          expired_at: { $lt: currentDate }
+      });
+
+      console.log(`Deleted ${expiredStories.deletedCount} expired stories.`);
+  } catch (error) {
+      console.error('Error deleting expired stories:', error);
+  }
+});
+
 
 // Middleware to parse JSON bodies
 app.use(bodyParser.json());
