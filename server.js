@@ -21,6 +21,14 @@ dotenv.config();
 
 const app = express();
 
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+
+// ✅ Serve static files from /uploads
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+
 app.use(cors({
     origin: ['http://localhost:3000'],
     methods: ['GET', 'POST', 'PUT', 'DELETE'],
@@ -44,7 +52,6 @@ app.get("/", (req, res) => {
 
 
 // Get the directory name for the current file (equivalent of __dirname in CommonJS)
-const __filename = fileURLToPath(import.meta.url);
 
 
 // Run every day at 12:00 PM (Noon)
