@@ -5,6 +5,8 @@ import multer from 'multer'; // Import multer for file handling
 import path from 'path';  // To resolve file paths
 import twilio from 'twilio';
 import { SendSms } from '../config/twilioConfig.js';
+import uploads from '../config/uploadConfig.js';
+import Story from '../Models/Story.js';
 
 
 
@@ -27,7 +29,7 @@ const client = twilio(accountSid, authToken);
 // Set up storage for profile images using Multer
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, 'uploads/profiles'); // Specify folder to store uploaded files
+    cb(null, 'uploads/profiles'); // Specify folder to store uploadsed files
   },
   filename: function (req, file, cb) {
     // Set the filename for the uploaded file
@@ -92,26 +94,36 @@ export const registerUser = async (req, res) => {
 export const loginUser = async (req, res) => {
   const { mobile } = req.body;
 
+  // 🔴 Check if mobile is provided
   if (!mobile) {
     return res.status(400).json({ error: "Mobile number is required" });
   }
 
-  try {
-    // ✅ Find user by mobile number
-    let user = await User.findOne({ mobile });
+  // 🔴 Validate mobile number format (Example: Check if it's a 10-digit number)
+  const mobilePattern = /^[0-9]{10}$/; // Basic 10-digit mobile number validation
+  if (!mobilePattern.test(mobile)) {
+    return res.status(400).json({ error: "Invalid mobile number format" });
+  }
 
-    // 🆕 If user doesn't exist, create one
+  try {
+    // 🔍 Check if user exists with this mobile number
+    const user = await User.findOne({ mobile });
+
+    // ❌ If user does not exist
     if (!user) {
-      user = new User({ mobile });
-      await user.save();
+      return res.status(404).json({
+        error: "User not found. Please register first."
+      });
     }
 
-    // ✅ Generate JWT Token
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET_KEY, {
-      expiresIn: '1h',
-    });
+    // 🔐 Create JWT token
+    const token = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET_KEY,
+      { expiresIn: '1h' }
+    );
 
-    // ✅ Respond with user info + token
+    // ✅ Return user info + token
     return res.status(200).json({
       message: "Login successful",
       token,
@@ -122,11 +134,11 @@ export const loginUser = async (req, res) => {
       }
     });
 
-  } catch (error) {
-    console.error(error);
+  } catch (err) {
+    console.error(err);
     return res.status(500).json({
-      error: "Login failed",
-      details: error.message
+      error: "Something went wrong during login",
+      details: err.message
     });
   }
 };
@@ -415,6 +427,56 @@ export const checkUserBirthday = async (req, res) => {
       error: error.message
     });
   }
+};
+
+
+//create story
+// Controller to post a story (image/video)
+export const postStory = async (req, res) => {
+  try {
+    const { userId } = req.params; // User ID from the URL parameter
+    const { caption } = req.body;
+
+    if (!req.file) {
+        return res.status(400).json({ message: "Image or Video is required" });
+    }
+
+    let imagePath = '';
+    let videoPath = '';
+
+    // Check if uploaded file is an image or video
+    if (req.file.mimetype.startsWith('image')) {
+        imagePath = req.file.path;
+    } else if (req.file.mimetype.startsWith('video')) {
+        videoPath = req.file.path;
+    }
+
+    // Calculate expiration time (24 hours)
+    const expiredAt = new Date();
+    expiredAt.setHours(expiredAt.getHours() + 24);
+
+    // Create a new story in the database
+    const newStory = new Story({
+        user: userId,  // Linking story with the user who created it
+        image: imagePath,
+        video: videoPath,
+        caption,
+        expired_at: expiredAt
+    });
+
+    // Save the story
+    await newStory.save();
+
+    // Find the user by userId and push the new story ID to `myStories`
+    await User.findByIdAndUpdate(userId, {
+        $push: { myStories: newStory._id }
+    });
+
+    res.status(201).json({ message: "Story posted successfully!" });
+} catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Something went wrong!" });
+}
 };
 
 
