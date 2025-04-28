@@ -62,7 +62,12 @@ const upload = multer({
 // User Registration Controller
 export const registerUser = async (req, res) => {
   try {
-    const { name, email, mobile } = req.body;
+    const { name, email, mobile, dob, marriageAnniversaryDate } = req.body;
+
+    // Validate mandatory fields
+    if (!name || !mobile || !dob) {
+      return res.status(400).json({ message: 'Name, Mobile, and Date of Birth are required!' });
+    }
 
     // Check if user already exists
     const userExist = await User.findOne({ $or: [{ email }, { mobile }] });
@@ -70,11 +75,13 @@ export const registerUser = async (req, res) => {
       return res.status(400).json({ message: 'User with this email or mobile already exists!' });
     }
 
-    // Create a new user
+    // Create a new user with dob and marriageAnniversaryDate fields
     const newUser = new User({
       name,
       email,
       mobile,
+      dob,  // Add DOB
+      marriageAnniversaryDate,  // Add Marriage Anniversary Date
     });
 
     // Save the user to the database
@@ -83,12 +90,27 @@ export const registerUser = async (req, res) => {
     // Generate JWT token for the user
     const token = jwt.sign({ id: newUser._id }, process.env.JWT_SECRET_KEY, { expiresIn: '1h' });
 
-    return res.status(201).json({ message: 'Registration successful', token });
+    // Return the response with user data
+    return res.status(201).json({
+      message: 'Registration successful',
+      token,
+      user: {
+        id: newUser._id,
+        name: newUser.name,
+        email: newUser.email,
+        mobile: newUser.mobile,
+        dob: newUser.dob,
+        marriageAnniversaryDate: newUser.marriageAnniversaryDate,
+        createdAt: newUser.createdAt,
+        updatedAt: newUser.updatedAt,
+      },
+    });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 
 
@@ -125,15 +147,16 @@ export const loginUser = async (req, res) => {
     );
 
     // ✅ Return user info + token
-    return res.status(200).json({
-      message: "Login successful",
-      token,
-      user: {
-        _id: user._id,
-        mobile: user.mobile,
-        name: user.name || null,
-      }
-    });
+return res.status(200).json({
+  message: "Login successful",
+  token,
+  user: {
+    _id: user._id,
+    mobile: user.mobile,
+    name: user.name || null,
+    dob: user.dob || null,  // Add dob here
+  }
+});
 
   } catch (err) {
     console.error(err);
