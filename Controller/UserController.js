@@ -7,6 +7,7 @@ import twilio from 'twilio';
 import { SendSms } from '../config/twilioConfig.js';
 import uploads from '../config/uploadConfig.js';
 import Story from '../Models/Story.js';
+import Plan from '../Models/Plan.js';
 
 
 
@@ -313,25 +314,28 @@ export const getProfile = async (req, res) => {
   try {
     const userId = req.params.id;  // Get the user ID from request params
 
-    // Find user by ID
-    const user = await User.findById(userId);
+    // Find user by ID and populate the subscribedPlans
+    const user = await User.findById(userId).populate('subscribedPlans.planId');  // Assuming `subscribedPlans` references `Plan` model
 
     if (!user) {
       return res.status(404).json({ message: 'User not found!' });
     }
 
+    // Respond with user details along with subscribed plans
     return res.status(200).json({
       id: user._id,
       name: user.name,
       email: user.email,
       mobile: user.mobile,
       profileImage: user.profileImage,
+      subscribedPlans: user.subscribedPlans,  // Include subscribedPlans in the response
     });
   } catch (error) {
     console.error(error);
     return res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 
 // SMS sending function
@@ -535,6 +539,86 @@ export const getUserStories = async (req, res) => {
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Something went wrong!" });
+  }
+};
+
+
+
+// Controller to handle the plan purchase
+export const purchasePlan = async (req, res) => {
+  try {
+    const { userId, planId } = req.body;
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if plan exists
+    const plan = await Plan.findById(planId);
+    if (!plan) {
+      return res.status(404).json({ message: 'Plan not found' });
+    }
+
+    // Process the payment here (e.g., use a payment gateway like Stripe)
+    // This can involve checking the user's payment method and charging them
+
+    // For now, let's assume payment is successful
+
+    // Create the subscription plan object
+    const newSubscribedPlan = {
+      planId: plan._id,
+      name: plan.name,
+      originalPrice: plan.originalPrice,
+      offerPrice: plan.offerPrice,
+      discountPercentage: plan.discountPercentage,
+      duration: plan.duration,
+      startDate: new Date(),
+      endDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)), // Assuming 1-year subscription
+    };
+
+    // Push the new plan to the user's subscribedPlans array
+    user.subscribedPlans.push(newSubscribedPlan);
+
+    await user.save();
+
+    // Respond with a success message
+    res.status(200).json({
+      message: 'Plan purchased successfully',
+      plan: newSubscribedPlan,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error purchasing plan' });
+  }
+};
+
+
+// Controller to get user's subscribed plans
+export const getSubscribedPlan = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    // Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if user has any subscribed plans
+    if (!user.subscribedPlans || user.subscribedPlans.length === 0) {
+      return res.status(404).json({ message: 'No subscribed plans found' });
+    }
+
+    // Respond with the user's subscribed plans details
+    res.status(200).json({
+      message: 'Subscribed plans fetched successfully',
+      subscribedPlans: user.subscribedPlans,
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching subscribed plans' });
   }
 };
 

@@ -12,7 +12,9 @@ import {
      checkUserBirthday,
      postStory,
      getAllStories,
-     getUserStories
+     getUserStories,
+     purchasePlan,
+     getSubscribedPlan
     } from '../Controller/UserController.js'; // Import UserController
 import uploads from '../config/uploadConfig.js';
 const router = express.Router();
@@ -41,6 +43,10 @@ router.get('/check-birthday/:userId', checkUserBirthday);
 router.post('/post/:userId', uploads, postStory);
 router.get('/getAllStories', getAllStories);
 router.get('/getUserStories/:userId', getUserStories);
+router.post('/purchaseplan', purchasePlan);
+router.get('/myplan/:userId', getSubscribedPlan);
+
+
 
 
 
