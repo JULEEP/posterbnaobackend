@@ -14,7 +14,7 @@ import { sendBirthdayWishes } from './Controller/UserController.js';
 import cron from 'node-cron';
 import Story from './Models/Story.js';
 import PlanRoutes from './Routes/PlanRoutes.js'
-
+import BusinessRoutes from './Routes/BusinessRoutes.js'
 
 
 dotenv.config();
@@ -98,6 +98,8 @@ app.use('/api/users', UserRoutes);
 app.use('/api/category', CategoryRoutes);
 app.use('/api/poster', PosterRoutes);
 app.use('/api/plans', PlanRoutes);
+app.use('/api/business', BusinessRoutes);
+
 
 
 
