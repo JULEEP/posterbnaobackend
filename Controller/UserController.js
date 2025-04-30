@@ -462,47 +462,46 @@ export const checkUserBirthday = async (req, res) => {
 
 export const postStory = async (req, res) => {
   try {
-    const { userId } = req.params; // User ID from the URL parameter
+    const { userId } = req.params;
     const { caption } = req.body;
 
-    // If no file is uploaded
-    if (!req.file) {
-        return res.status(400).json({ message: "Image or Video is required" });
+    // No files uploaded
+    if (!req.files || (req.files.length === 0)) {
+      return res.status(400).json({ message: "At least one image or video is required." });
     }
 
-    let imagePath = '';
-    let videoPath = '';
+    const images = [];
+    const videos = [];
 
-    // Check if uploaded file is an image or video
-    if (req.file.mimetype.startsWith('image')) {
-        imagePath = req.file.path;
-    } else if (req.file.mimetype.startsWith('video')) {
-        videoPath = req.file.path;
-    }
+    // Loop through each file and sort based on mimetype
+    req.files.forEach(file => {
+      const normalizedPath = file.path.replace(/\\/g, '/'); // For Windows path fix
+      if (file.mimetype.startsWith('image')) {
+        images.push(normalizedPath);
+      } else if (file.mimetype.startsWith('video')) {
+        videos.push(normalizedPath);
+      }
+    });
 
-    // Calculate expiration time (24 hours)
+    // Set expiry
     const expiredAt = new Date();
     expiredAt.setHours(expiredAt.getHours() + 24);
 
-    // Create a new story in the database
     const newStory = new Story({
-        user: userId,  // Linking story with the user who created it
-        image: imagePath,
-        video: videoPath,
-        caption,
-        expired_at: expiredAt
+      user: userId,
+      images,
+      videos,
+      caption,
+      expired_at: expiredAt
     });
 
-    // Save the story
     await newStory.save();
 
-    // Find the user by userId and push the new story ID to `myStories`
     await User.findByIdAndUpdate(userId, {
-        $push: { myStories: newStory._id }
+      $push: { myStories: newStory._id }
     });
 
-    // Send the complete story data in response
-    const user = await User.findById(userId); // Fetch user data (optional)
+    const user = await User.findById(userId);
 
     res.status(201).json({
       message: "Story posted successfully!",
@@ -510,15 +509,15 @@ export const postStory = async (req, res) => {
         _id: newStory._id,
         user: user._id,
         caption: newStory.caption,
-        image: newStory.image,
-        video: newStory.video,
+        images: newStory.images,
+        videos: newStory.videos,
         expired_at: newStory.expired_at,
-        user_name: user.name || null,  // Optionally include user info like name
-        user_mobile: user.mobile || null  // Optional mobile number
+        user_name: user.name || null,
+        user_mobile: user.mobile || null
       }
     });
   } catch (error) {
-    console.error(error);
+    console.error("Error posting story:", error);
     res.status(500).json({ message: "Something went wrong!" });
   }
 };
