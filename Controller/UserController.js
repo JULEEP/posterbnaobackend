@@ -8,6 +8,7 @@ import { SendSms } from '../config/twilioConfig.js';
 import uploads from '../config/uploadConfig.js';
 import Story from '../Models/Story.js';
 import Plan from '../Models/Plan.js';
+import mongoose from 'mongoose';
 
 
 
@@ -649,3 +650,223 @@ export const getSubscribedPlan = async (req, res) => {
 
 
 
+// User Registration Controller - Adding Customer to User's Customers Array
+export const addCustomerToUser = async (req, res) => {
+  try {
+    const { customer } = req.body;  // Expecting customer details in the request body
+    const { userId } = req.params;  // Getting userId from URL params
+
+    // Validate mandatory fields for customer
+    if (!userId || !customer) {
+      return res.status(400).json({ message: 'User ID and customer details are required!' });
+    }
+
+    // Find the user by userId
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found!' });
+    }
+
+    // Add the new customer to the user's customers array
+    user.customers.push(customer);
+
+    // Save the updated user document
+    await user.save();
+
+    // Return the updated user data with the new customer added
+    return res.status(200).json({
+      message: 'Customer added successfully!',
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile,
+        dob: user.dob,
+        marriageAnniversaryDate: user.marriageAnniversaryDate,
+        customers: user.customers,  // Return the updated customers array
+        createdAt: user.createdAt,
+        updatedAt: user.updatedAt,
+      },
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+// Get all customers for a specific user by userId
+export const getAllCustomersForUser = async (req, res) => {
+  try {
+    const { userId } = req.params;  // Get userId from URL params
+
+    // Validate if userId is provided
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required!' });
+    }
+
+    // Find the user by userId
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found!' });
+    }
+
+    // Return the customers array from the user document
+    return res.status(200).json({
+      message: 'Customers fetched successfully!',
+      customers: user.customers,  // Return the customers array
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+// Update customer details by userId and customerId
+export const updateCustomer = async (req, res) => {
+  try {
+    const { userId, customerId } = req.params;
+    const updatedCustomerDetails = req.body;
+
+    if (!userId || !customerId || !updatedCustomerDetails) {
+      return res.status(400).json({ message: 'User ID, Customer ID, and updated customer details are required!' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found!' });
+    }
+
+    const customerIndex = user.customers.findIndex(customer => customer._id.toString() === customerId);
+    if (customerIndex === -1) {
+      return res.status(404).json({ message: 'Customer not found!' });
+    }
+
+    // Update customer fields
+    user.customers[customerIndex] = {
+      ...user.customers[customerIndex]._doc,
+      ...updatedCustomerDetails,
+    };
+
+    await user.save();
+
+    // Return updated customer only
+    return res.status(200).json({
+      message: 'Customer updated successfully!',
+      customer: user.customers[customerIndex],
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
+
+// Delete customer by userId and customerId (no ObjectId validation)
+export const deleteCustomer = async (req, res) => {
+  try {
+    const { userId, customerId } = req.params;
+
+    console.log(`Attempting to delete customer with ID: ${customerId}`);
+
+    if (!userId || !customerId) {
+      return res.status(400).json({ message: 'User ID and Customer ID are required!' });
+    }
+
+    // Find the user by userId
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found!' });
+    }
+
+    // Match customerId directly as string (no ObjectId casting)
+    const customerIndex = user.customers.findIndex(
+      customer => customer._id.toString() === customerId
+    );
+
+    console.log(`Customer index: ${customerIndex}`);
+
+    if (customerIndex === -1) {
+      return res.status(404).json({ message: 'Customer not found!' });
+    }
+
+    // Remove the customer from the array
+    user.customers.splice(customerIndex, 1);
+
+    // Save changes
+    await user.save();
+
+    return res.status(200).json({
+      message: 'Customer deleted successfully!',
+      customers: user.customers, // just return updated customers if you want to simplify
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ message: 'Server error' });
+  }
+};
+
+
+
+// Function to send birthday wishes
+export const sendBirthdayWishesToCustomers = async (req, res) => {
+  try {
+    // Get today's date (Only day and month)
+    const today = new Date();
+    const todayDate = today.toISOString().split('T')[0];  // Format as yyyy-mm-dd
+
+    // Fetch all users and loop through their customers
+    const users = await User.find();
+
+    users.forEach(user => {
+      user.customers.forEach(customer => {
+        const customerDOB = new Date(customer.dob);
+        const customerBirthday = customerDOB.toISOString().split('T')[0];  // Format as yyyy-mm-dd
+
+        // Check if today is the customer's birthday
+        if (todayDate === customerBirthday) {
+          const message = `Happy Birthday, ${customer.name}! Wishing you a wonderful day.`;
+          SendSms(customer.mobile, message);
+        }
+      });
+    });
+
+    res.status(200).json({ message: 'Birthday wishes sent successfully!' });
+  } catch (error) {
+    console.error('Error sending birthday wishes:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+// Function to send anniversary wishes
+export const sendAnniversaryWishes = async (req, res) => {
+  try {
+    // Get today's date (Only day and month)
+    const today = new Date();
+    const todayDate = today.toISOString().split('T')[0];  // Format as yyyy-mm-dd
+
+    // Fetch all users and loop through their customers
+    const users = await User.find();
+
+    users.forEach(user => {
+      user.customers.forEach(customer => {
+        const customerAnniversaryDate = new Date(customer.anniversaryDate);
+        const customerAnniversary = customerAnniversaryDate.toISOString().split('T')[0];  // Format as yyyy-mm-dd
+
+        // Check if today is the customer's anniversary
+        if (todayDate === customerAnniversary) {
+          const message = `Happy Anniversary, ${customer.name}! Wishing you many more years of happiness.`;
+          SendSms(customer.mobile, message);
+        }
+      });
+    });
+
+    res.status(200).json({ message: 'Anniversary wishes sent successfully!' });
+  } catch (error) {
+    console.error('Error sending anniversary wishes:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+}

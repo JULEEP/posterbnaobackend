@@ -15,7 +15,8 @@ import cron from 'node-cron';
 import Story from './Models/Story.js';
 import PlanRoutes from './Routes/PlanRoutes.js'
 import BusinessRoutes from './Routes/BusinessRoutes.js'
-
+import User from './Models/User.js';
+import { SendSms } from './config/twilioConfig.js';
 
 dotenv.config();
 
@@ -49,11 +50,7 @@ app.get("/", (req, res) => {
         message: "Welcome to our service!", // Static message
     });
 });
-
-
 // Get the directory name for the current file (equivalent of __dirname in CommonJS)
-
-
 // Run every day at 12:00 PM (Noon)
 cron.schedule('0 12 * * *', () => {
     console.log('⏰ Running Birthday Wishes Job at 12 PM');
@@ -84,6 +81,44 @@ cron.schedule('0 * * * *', async () => {  // This will run every hour
 });
 
 
+
+// Cron job to run every day at 12 PM
+cron.schedule('0 12 * * *', async () => {
+  console.log('⏰ Running Birthday & Anniversary Wishes Job at 12 PM');
+
+  // Get today's date
+  const today = new Date();
+
+  // Query all users and their customers
+  const users = await User.find({}).populate('customers');  // Assuming 'customers' is an array of embedded documents
+
+  users.forEach(user => {
+    user.customers.forEach(async (customer) => {
+      // Check if customer's birthday is today
+      if (customer.dob && new Date(customer.dob).getDate() === today.getDate() &&
+          new Date(customer.dob).getMonth() === today.getMonth()) {
+        // Send birthday message
+        const birthdayMessage = `🎉 Happy Birthday, ${customer.name}! 🎉 Wishing you a wonderful year ahead.`;
+        await SendSms(customer.mobile, birthdayMessage);  // Send SMS
+        console.log(`Sent Birthday SMS to ${customer.name} (${customer.mobile})`);
+      }
+
+      // Check if customer's anniversary is today
+      if (customer.anniversaryDate && new Date(customer.anniversaryDate).getDate() === today.getDate() &&
+          new Date(customer.anniversaryDate).getMonth() === today.getMonth()) {
+        // Send anniversary message
+        const anniversaryMessage = `💍 Happy Anniversary, ${customer.name}! 💍 Wishing you many more years of love and happiness.`;
+        await SendSms(customer.mobile, anniversaryMessage);  // Send SMS
+        console.log(`Sent Anniversary SMS to ${customer.name} (${customer.mobile})`);
+      }
+    });
+  });
+
+  console.log('🎉 Birthday and Anniversary wishes sent!');
+});
+
+
+
 // Middleware to parse JSON bodies
 app.use(bodyParser.json());
 
@@ -99,12 +134,6 @@ app.use('/api/category', CategoryRoutes);
 app.use('/api/poster', PosterRoutes);
 app.use('/api/plans', PlanRoutes);
 app.use('/api/business', BusinessRoutes);
-
-
-
-
-
-
 
 
 // Start the server

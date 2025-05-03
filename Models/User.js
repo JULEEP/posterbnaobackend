@@ -30,6 +30,18 @@ const userSchema = new mongoose.Schema({
     type: Schema.Types.ObjectId,
     ref: 'Booking', // Reference to Booking model
   }],
+   // Customers field with an array of customers inside the same schema
+   customers: [
+    {
+      name: { type: String, required: false },
+      email: { type: String, required: false, unique: true },
+      mobile: { type: String, required: false, unique: true },
+      dob: { type: Date, required: false },
+      address: { type: String, required: false },
+      gender: { type: String, required: false },
+      anniversaryDate: { type: Date, required: false },
+    }
+  ],
   profileImage: {
     type: String,
     default: 'default-profile-image.jpg', // Optional default image
