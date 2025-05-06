@@ -9,6 +9,8 @@ import uploads from '../config/uploadConfig.js';
 import Story from '../Models/Story.js';
 import Plan from '../Models/Plan.js';
 import mongoose from 'mongoose';
+import Order from '../Models/Order.js';
+import Poster from '../Models/Poster.js';
 
 
 
@@ -870,3 +872,145 @@ export const sendAnniversaryWishes = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 }
+
+
+
+export const buyPoster = async (req, res) => {
+  try {
+    const { userId, posterId, quantity } = req.body;
+
+    if (!userId || !posterId || !quantity) {
+      return res.status(400).json({ message: 'userId, posterId, and quantity are required.' });
+    }
+
+    const user = await User.findById(userId);
+    const poster = await Poster.findById(posterId);
+
+    if (!user || !poster) {
+      return res.status(404).json({ message: 'User or Poster not found.' });
+    }
+
+    if (!poster.inStock) {
+      return res.status(400).json({ message: 'Poster is out of stock.' });
+    }
+
+    const now = new Date();
+    const hasActivePlan = user.subscribedPlans?.some(plan =>
+      plan.startDate <= now && plan.endDate >= now
+    );
+
+    const totalAmount = hasActivePlan ? 0 : poster.price * quantity;
+
+    const newOrder = new Order({
+      user: user._id,
+      poster: poster._id,
+      quantity,
+      totalAmount,
+      status: 'Pending',
+      orderDate: now
+    });
+
+    await newOrder.save();
+
+    // Push order ID into user's myBookings
+    user.myBookings.push(newOrder._id);
+    await user.save();
+
+    return res.status(201).json({
+      message: hasActivePlan
+        ? 'Poster ordered for free with active subscription plan.'
+        : 'Poster order placed successfully.',
+      order: newOrder
+    });
+
+  } catch (error) {
+    console.error('Error in buyPoster:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+export const checkoutOrder = async (req, res) => {
+  try {
+    const { userId, orderId } = req.body;
+
+    // ✅ Admin's fixed UPI ID
+    const adminUpiId = 'juleeperween@ybl';
+
+    // Validate required fields
+    if (!userId || !orderId) {
+      return res.status(400).json({ message: 'userId and orderId are required.' });
+    }
+
+    const user = await User.findById(userId);
+    const order = await Order.findById(orderId).populate('poster');
+
+    if (!user || !order) {
+      return res.status(404).json({ message: 'User or Order not found.' });
+    }
+
+    if (String(order.user) !== String(user._id)) {
+      return res.status(403).json({ message: 'Order does not belong to this user.' });
+    }
+
+    if (order.status !== 'Pending') {
+      return res.status(400).json({ message: 'Order is not in a pending state.' });
+    }
+
+    // ✅ Simulate payment to admin's UPI ID (only if payment is needed)
+    if (order.totalAmount > 0) {
+      order.paymentDetails = {
+        method: 'PhonePe',
+        upiId: adminUpiId,
+        paymentDate: new Date()
+      };
+    }
+
+    order.status = 'Completed';
+    await order.save();
+
+    return res.status(200).json({
+      message: 'Payment successful and order completed.',
+      order
+    });
+
+  } catch (error) {
+    console.error('Error in checkoutOrder:', error);
+    return res.status(500).json({ message: 'Internal server error.' });
+  }
+};
+
+
+
+export const getOrdersByUserId = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({ message: 'User ID is required' });
+    }
+
+    const orders = await Order.find({ user: userId })
+      .populate('poster', 'name price');
+
+    return res.status(200).json({ orders });
+  } catch (error) {
+    console.error('Error in getOrdersByUserId:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};
+
+
+
+export const getAllOrders = async (req, res) => {
+  try {
+    const orders = await Order.find()
+      .populate('user', 'name email')     // optional: populate user info
+      .populate('poster', 'name price');  // optional: populate poster info
+
+    return res.status(200).json({ orders });
+  } catch (error) {
+    console.error('Error in getAllOrders:', error);
+    return res.status(500).json({ message: 'Internal server error' });
+  }
+};

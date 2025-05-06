@@ -62,6 +62,10 @@ const userSchema = new mongoose.Schema({
       endDate: Date,
     },
   ],
+  myBookings: [{
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'Order'
+}],
 }, {
   timestamps: true  // CreatedAt and UpdatedAt fields automatically
 });

@@ -15,6 +15,7 @@ import cron from 'node-cron';
 import Story from './Models/Story.js';
 import PlanRoutes from './Routes/PlanRoutes.js'
 import BusinessRoutes from './Routes/BusinessRoutes.js'
+import AdminRoutes from './Routes/AdminRoutes.js'
 import User from './Models/User.js';
 import { SendSms } from './config/twilioConfig.js';
 
@@ -134,6 +135,8 @@ app.use('/api/category', CategoryRoutes);
 app.use('/api/poster', PosterRoutes);
 app.use('/api/plans', PlanRoutes);
 app.use('/api/business', BusinessRoutes);
+app.use('/api/admin', AdminRoutes);
+
 
 
 // Start the server
