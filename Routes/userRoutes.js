@@ -18,7 +18,11 @@ import {
      addCustomerToUser,
      getAllCustomersForUser,
      updateCustomer,
-     deleteCustomer
+     deleteCustomer,
+     buyPoster,
+     checkoutOrder,
+     getAllOrders,
+     getOrdersByUserId
     } from '../Controller/UserController.js'; // Import UserController
 import uploads from '../config/uploadConfig.js';
 const router = express.Router();
@@ -53,6 +57,13 @@ router.post('/addcustomer/:userId', addCustomerToUser);
 router.get('/allcustomers/:userId', getAllCustomersForUser);
 router.put('/update-customers/:userId/:customerId', updateCustomer);
 router.delete('/delete-customers/:userId/:customerId', deleteCustomer);
+router.post('/buy', buyPoster);
+router.post('/checkout', checkoutOrder);
+// ✅ New routes:
+router.get('/allorders', getAllOrders);               // GET /api/orders/all
+router.get('/userorders/:userId', getOrdersByUserId); // GET /api/orders/user/:userId
+
+
 
 
 
