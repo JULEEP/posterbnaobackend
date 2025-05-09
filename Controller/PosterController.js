@@ -6,22 +6,33 @@ export const createPoster = async (req, res) => {
       name,
       categoryName,
       price,
-      images,
       description,
       size,
-      festivalDate, // This should stay as a string
+      festivalDate, // Festival Date should be a string
       inStock,
       tags
     } = req.body;
+
+    // Handle images: Check if 'images' or 'image' exists in req.files
+    let images = [];
+
+    if (req.files['images']) {
+      images = req.files['images'].map(file => file.filename); // If 'images' field exists, it's multiple files
+    }
+
+    if (req.files['image']) {
+      // If 'image' field exists, it's a single file
+      images.push(req.files['image'][0].filename);
+    }
 
     const newPoster = new Poster({
       name,
       categoryName,
       price,
-      images,
+      images,  // Store all image filenames (single or multiple)
       description,
       size,
-      festivalDate: festivalDate || null, // Save as raw string
+      festivalDate: festivalDate || null, // Save festival date as string
       inStock,
       tags
     });
