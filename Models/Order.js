@@ -9,6 +9,19 @@ const orderSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Poster',
   },
+
+  businessPoster: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'BusinessPoster',
+    default: null
+  },
+
+  paymentMethod: {
+    type: String,
+    enum: ['PhonePe', 'GooglePay', 'Paytm', 'UPI', 'Free Plan'],
+    default: 'UPI'
+  },
+
   quantity: {
     type: Number,
     default: 1,
