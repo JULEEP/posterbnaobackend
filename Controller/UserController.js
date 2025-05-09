@@ -11,6 +11,7 @@ import Plan from '../Models/Plan.js';
 import mongoose from 'mongoose';
 import Order from '../Models/Order.js';
 import Poster from '../Models/Poster.js';
+import BusinessPoster from '../Models/BusinessPoster.js';
 
 
 
@@ -877,21 +878,37 @@ export const sendAnniversaryWishes = async (req, res) => {
 
 export const buyPoster = async (req, res) => {
   try {
-    const { userId, posterId, quantity } = req.body;
+    const { userId, posterId, businessPosterId, quantity } = req.body;
 
-    if (!userId || !posterId || !quantity) {
-      return res.status(400).json({ message: 'userId, posterId, and quantity are required.' });
+    if (!userId || (!posterId && !businessPosterId) || !quantity) {
+      return res.status(400).json({
+        message: 'userId, posterId or businessPosterId, and quantity are required.'
+      });
     }
 
     const user = await User.findById(userId);
-    const poster = await Poster.findById(posterId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
 
-    if (!user || !poster) {
-      return res.status(404).json({ message: 'User or Poster not found.' });
+    // Check if it's a regular poster or business poster
+    let poster = null;
+    let posterType = '';
+
+    if (posterId) {
+      poster = await Poster.findById(posterId);
+      posterType = 'Poster';
+    } else if (businessPosterId) {
+      poster = await BusinessPoster.findById(businessPosterId);
+      posterType = 'BusinessPoster';
+    }
+
+    if (!poster) {
+      return res.status(404).json({ message: `${posterType || 'Poster'} not found.` });
     }
 
     if (!poster.inStock) {
-      return res.status(400).json({ message: 'Poster is out of stock.' });
+      return res.status(400).json({ message: `${posterType} is out of stock.` });
     }
 
     const now = new Date();
@@ -903,7 +920,8 @@ export const buyPoster = async (req, res) => {
 
     const newOrder = new Order({
       user: user._id,
-      poster: poster._id,
+      poster: posterId || undefined,
+      businessPoster: businessPosterId || undefined,
       quantity,
       totalAmount,
       status: 'Pending',
@@ -912,14 +930,14 @@ export const buyPoster = async (req, res) => {
 
     await newOrder.save();
 
-    // Push order ID into user's myBookings
+    // Add order to user's bookings
     user.myBookings.push(newOrder._id);
     await user.save();
 
     return res.status(201).json({
       message: hasActivePlan
-        ? 'Poster ordered for free with active subscription plan.'
-        : 'Poster order placed successfully.',
+        ? `${posterType} ordered for free with active subscription.`
+        : `${posterType} order placed successfully.`,
       order: newOrder
     });
 
@@ -929,10 +947,9 @@ export const buyPoster = async (req, res) => {
   }
 };
 
-
 export const checkoutOrder = async (req, res) => {
   try {
-    const { userId, orderId } = req.body;
+    const { userId, orderId, paymentMethod } = req.body;
 
     // ✅ Admin's fixed UPI ID
     const adminUpiId = 'juleeperween@ybl';
@@ -957,20 +974,34 @@ export const checkoutOrder = async (req, res) => {
       return res.status(400).json({ message: 'Order is not in a pending state.' });
     }
 
-    // ✅ Simulate payment to admin's UPI ID (only if payment is needed)
+    // ✅ Generate UPI deep link for manual payment (if required)
     if (order.totalAmount > 0) {
-      order.paymentDetails = {
-        method: 'PhonePe',
+      if (!paymentMethod) {
+        return res.status(400).json({ message: 'paymentMethod is required for paid orders.' });
+      }
+
+      const upiLink = `upi://pay?pa=${adminUpiId}&pn=Juleep%20Admin&am=${order.totalAmount}&cu=INR`;
+
+      return res.status(200).json({
+        message: 'Please complete payment via your UPI app.',
+        upiApp: paymentMethod,
         upiId: adminUpiId,
-        paymentDate: new Date()
-      };
+        amount: order.totalAmount,
+        upiLink, // Frontend can open this link to launch UPI app
+        note: 'Click the link to open in PhonePe, Google Pay, etc. After payment, confirm manually.'
+      });
     }
 
+    // Free order — mark as completed immediately
     order.status = 'Completed';
+    order.paymentDetails = {
+      method: 'UPI',
+      paymentDate: new Date()
+    };
     await order.save();
 
     return res.status(200).json({
-      message: 'Payment successful and order completed.',
+      message: 'Order completed using free subscription plan.',
       order
     });
 
@@ -979,6 +1010,7 @@ export const checkoutOrder = async (req, res) => {
     return res.status(500).json({ message: 'Internal server error.' });
   }
 };
+
 
 
 
