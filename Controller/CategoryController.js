@@ -1,12 +1,17 @@
 import Category from "../Models/Category.js";
-// 🟢 Create a new category
 export const createCategory = async (req, res) => {
   try {
-    const { categoryName, image } = req.body;
+    const { categoryName, subCategoryName } = req.body;
+    const image = req.file ? req.file.filename : null;
+
+    if (!image) {
+      return res.status(400).json({ success: false, message: "Image is required" });
+    }
 
     const newCategory = new Category({
       categoryName,
-      image,
+      subCategoryName,
+      image, // Store only filename or full path as needed
     });
 
     const savedCategory = await newCategory.save();
@@ -86,3 +91,27 @@ export const updateCategory = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
+
+// 🗑️ Delete a category
+export const deleteCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const deletedCategory = await Category.findByIdAndDelete(id);
+
+    if (!deletedCategory) {
+      return res.status(404).json({ success: false, message: "Category not found" });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Category deleted successfully",
+      category: deletedCategory,
+    });
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
+

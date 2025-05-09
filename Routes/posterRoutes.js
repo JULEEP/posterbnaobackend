@@ -10,10 +10,11 @@ import {
   getClothingPosters,
   getUgadiPosters
 } from '../Controller/PosterController.js';
+import uploads from '../config/uploadConfig.js';
 
 const router = express.Router();
 
-router.post('/create-poster', createPoster);         // POST /api/posters
+router.post('/create-poster', uploads, createPoster);
 router.get('/getallposter', getAllPosters); 
 router.post('/festival', getPostersByFestivalDates); 
 router.get('/single-poster/:id', getSinglePoster);    // GET /api/posters/:id
