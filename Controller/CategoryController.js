@@ -2,16 +2,15 @@ import Category from "../Models/Category.js";
 export const createCategory = async (req, res) => {
   try {
     const { categoryName, subCategoryName } = req.body;
-    const image = req.file ? req.file.filename : null;
 
-    if (!image) {
-      return res.status(400).json({ success: false, message: "Image is required" });
-    }
+    // 🛠️ Access file properly from req.files
+    const imageFile = req.files && req.files.image ? req.files.image[0] : null;
+    const image = imageFile ? imageFile.filename : null;
 
     const newCategory = new Category({
       categoryName,
       subCategoryName,
-      image, // Store only filename or full path as needed
+      image,
     });
 
     const savedCategory = await newCategory.save();
@@ -26,6 +25,7 @@ export const createCategory = async (req, res) => {
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
+
 
 // 📦 Get all categories
 export const getAllCategories = async (req, res) => {
