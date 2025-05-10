@@ -7,6 +7,12 @@ const storySchema = new mongoose.Schema(
     videos: { type: [String], default: [] }, // 🔄 Changed to array
     caption: { type: String, default: '' },
     expired_at: { type: Date, },
+     media: [
+    {
+      url: String,
+      type: { type: String, } // optional
+    }
+  ],
   },
   { timestamps: true }
 );
