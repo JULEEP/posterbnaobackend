@@ -469,18 +469,20 @@ export const postStory = async (req, res) => {
     const { userId } = req.params;
     const { caption } = req.body;
 
-    // Check if there is a file uploaded
-    if (!req.files || (req.files.length === 0)) {
+    // Validate presence of files in any of the accepted fields
+    const fileFields = ['file', 'image', 'images'];
+    const uploadedFiles = fileFields.flatMap(field => req.files?.[field] || []);
+
+    if (uploadedFiles.length === 0) {
       return res.status(400).json({ message: "At least one image or video is required." });
     }
 
     const images = [];
     const videos = [];
 
-    // Loop through each file and sort based on mimetype
-    // Since we are assuming just 1 file uploaded, we can directly handle it
-    req.files.file.forEach(file => {
-      const normalizedPath = file.path.replace(/\\/g, '/'); // For Windows path fix
+    // Normalize paths and separate into images/videos
+    uploadedFiles.forEach(file => {
+      const normalizedPath = file.path.replace(/\\/g, '/'); // Windows compatibility
       if (file.mimetype.startsWith('image')) {
         images.push(normalizedPath);
       } else if (file.mimetype.startsWith('video')) {
@@ -488,11 +490,11 @@ export const postStory = async (req, res) => {
       }
     });
 
-    // Set expiry for story (24 hours)
+    // Set 24-hour expiry
     const expiredAt = new Date();
     expiredAt.setHours(expiredAt.getHours() + 24);
 
-    // Create new story in database
+    // Create and save story
     const newStory = new Story({
       user: userId,
       images,
@@ -503,7 +505,7 @@ export const postStory = async (req, res) => {
 
     await newStory.save();
 
-    // Update user's stories
+    // Update user story list
     await User.findByIdAndUpdate(userId, {
       $push: { myStories: newStory._id }
     });
@@ -580,30 +582,39 @@ export const getUserStories = async (req, res) => {
 export const deleteStory = async (req, res) => {
   try {
     const { userId, storyId } = req.params;
+    const { mediaUrl } = req.body;
 
-    // Check if story exists
     const story = await Story.findById(storyId);
     if (!story) {
       return res.status(404).json({ message: "Story not found." });
     }
 
-    // Optional: check if the story belongs to the user
+    // Check if the logged-in user owns this story
     if (story.user.toString() !== userId) {
-      return res.status(403).json({ message: "Not authorized to delete this story." });
+      return res.status(403).json({ message: "Not authorized." });
     }
 
-    // Delete the story
-    await Story.findByIdAndDelete(storyId);
+    // Filter the media item out from both arrays
+    const originalImagesLength = story.images.length;
+    const originalVideosLength = story.videos.length;
 
-    // Remove story reference from user's myStories array
-    await User.findByIdAndUpdate(userId, {
-      $pull: { myStories: storyId }
-    });
+    story.images = story.images.filter(url => url !== mediaUrl);
+    story.videos = story.videos.filter(url => url !== mediaUrl);
 
-    res.status(200).json({ message: "Story deleted successfully." });
+    // If nothing was removed, media URL not found
+    if (
+      story.images.length === originalImagesLength &&
+      story.videos.length === originalVideosLength
+    ) {
+      return res.status(404).json({ message: "Media item not found in story." });
+    }
+
+    await story.save();
+
+    res.status(200).json({ message: "Media item deleted successfully." });
   } catch (error) {
-    console.error("Error deleting story:", error);
-    res.status(500).json({ message: "Something went wrong while deleting the story." });
+    console.error("Error deleting media item:", error);
+    res.status(500).json({ message: "Something went wrong." });
   }
 };
 
