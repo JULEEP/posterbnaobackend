@@ -469,7 +469,7 @@ export const postStory = async (req, res) => {
     const { userId } = req.params;
     const { caption } = req.body;
 
-    // No files uploaded
+    // Check if there is a file uploaded
     if (!req.files || (req.files.length === 0)) {
       return res.status(400).json({ message: "At least one image or video is required." });
     }
@@ -478,7 +478,8 @@ export const postStory = async (req, res) => {
     const videos = [];
 
     // Loop through each file and sort based on mimetype
-    req.files.forEach(file => {
+    // Since we are assuming just 1 file uploaded, we can directly handle it
+    req.files.file.forEach(file => {
       const normalizedPath = file.path.replace(/\\/g, '/'); // For Windows path fix
       if (file.mimetype.startsWith('image')) {
         images.push(normalizedPath);
@@ -487,10 +488,11 @@ export const postStory = async (req, res) => {
       }
     });
 
-    // Set expiry
+    // Set expiry for story (24 hours)
     const expiredAt = new Date();
     expiredAt.setHours(expiredAt.getHours() + 24);
 
+    // Create new story in database
     const newStory = new Story({
       user: userId,
       images,
@@ -501,6 +503,7 @@ export const postStory = async (req, res) => {
 
     await newStory.save();
 
+    // Update user's stories
     await User.findByIdAndUpdate(userId, {
       $push: { myStories: newStory._id }
     });
@@ -525,6 +528,7 @@ export const postStory = async (req, res) => {
     res.status(500).json({ message: "Something went wrong!" });
   }
 };
+
 
 
 
@@ -570,6 +574,39 @@ export const getUserStories = async (req, res) => {
     res.status(500).json({ message: "Something went wrong!" });
   }
 };
+
+
+
+export const deleteStory = async (req, res) => {
+  try {
+    const { userId, storyId } = req.params;
+
+    // Check if story exists
+    const story = await Story.findById(storyId);
+    if (!story) {
+      return res.status(404).json({ message: "Story not found." });
+    }
+
+    // Optional: check if the story belongs to the user
+    if (story.user.toString() !== userId) {
+      return res.status(403).json({ message: "Not authorized to delete this story." });
+    }
+
+    // Delete the story
+    await Story.findByIdAndDelete(storyId);
+
+    // Remove story reference from user's myStories array
+    await User.findByIdAndUpdate(userId, {
+      $pull: { myStories: storyId }
+    });
+
+    res.status(200).json({ message: "Story deleted successfully." });
+  } catch (error) {
+    console.error("Error deleting story:", error);
+    res.status(500).json({ message: "Something went wrong while deleting the story." });
+  }
+};
+
 
 
 
