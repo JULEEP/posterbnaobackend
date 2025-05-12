@@ -8,43 +8,48 @@ export const createPoster = async (req, res) => {
       price,
       description,
       size,
-      festivalDate, // Festival Date should be a string
+      festivalDate,
       inStock,
       tags
     } = req.body;
 
-    // Handle images: Check if 'images' or 'image' exists in req.files
     let images = [];
 
-    if (req.files['images']) {
-      images = req.files['images'].map(file => `uploads/${file.filename}`); // Prepend 'uploads/' to the filename for multiple files
+    // ✅ Handle multiple image uploads via 'images'
+    if (req.files && req.files['images']) {
+      images = req.files['images'].map(file => `uploads/${file.filename}`);
     }
 
-    if (req.files['image']) {
-      // If 'image' field exists, it's a single file
-      images.push(`uploads/${req.files['image'][0].filename}`); // Prepend 'uploads/' to the filename for a single file
+    // ✅ Handle single image upload via 'image'
+    if (req.files && req.files['image']) {
+      images.push(`uploads/${req.files['image'][0].filename}`);
     }
 
     const newPoster = new Poster({
       name,
       categoryName,
       price,
-      images,  // Store all image URLs with 'uploads/' path
       description,
       size,
-      festivalDate: festivalDate || null, // Save festival date as string
+      festivalDate: festivalDate || null,
       inStock,
-      tags
+      tags,
+      images,
     });
 
     const savedPoster = await newPoster.save();
 
-    // Send the saved poster response, including the images with 'uploads/' path
-    res.status(201).json(savedPoster);
+    res.status(201).json({
+      success: true,
+      message: "Poster created successfully",
+      poster: savedPoster,
+    });
   } catch (error) {
-    res.status(500).json({ message: 'Error creating poster', error });
+    console.error("Error creating poster:", error);
+    res.status(500).json({ success: false, message: "Error creating poster", error });
   }
 };
+
 
 
 // ✅ Edit an existing poster
