@@ -46,6 +46,87 @@ export const createPoster = async (req, res) => {
   }
 };
 
+
+// ✅ Edit an existing poster
+export const editPoster = async (req, res) => {
+  try {
+    const { posterId } = req.params;  // Poster ID from URL parameter
+    const {
+      name,
+      categoryName,
+      price,
+      description,
+      size,
+      festivalDate,
+      inStock,
+      tags
+    } = req.body;
+
+    // Find the poster by ID
+    const poster = await Poster.findById(posterId);
+
+    if (!poster) {
+      return res.status(404).json({ message: 'Poster not found' });
+    }
+
+    // Handle new images if any were uploaded
+    let images = poster.images; // Keep existing images by default
+
+    // If new images are uploaded, add them to the existing ones
+    if (req.files['images']) {
+      const newImages = req.files['images'].map(file => `uploads/${file.filename}`);
+      images = [...images, ...newImages]; // Append new images to existing ones
+    }
+
+    if (req.files['image']) {
+      const newImage = `uploads/${req.files['image'][0].filename}`;
+      images.push(newImage);  // Append new single image if uploaded
+    }
+
+    // Update the poster fields
+    poster.name = name || poster.name;
+    poster.categoryName = categoryName || poster.categoryName;
+    poster.price = price || poster.price;
+    poster.images = images;
+    poster.description = description || poster.description;
+    poster.size = size || poster.size;
+    poster.festivalDate = festivalDate || poster.festivalDate;
+    poster.inStock = inStock !== undefined ? inStock : poster.inStock;
+    poster.tags = tags || poster.tags;
+
+    // Save the updated poster
+    const updatedPoster = await poster.save();
+
+    // Send the updated poster in response
+    res.status(200).json(updatedPoster);
+  } catch (error) {
+    res.status(500).json({ message: 'Error editing poster', error });
+  }
+};
+
+
+// ✅ Delete a poster
+export const deletePoster = async (req, res) => {
+  try {
+    const { posterId } = req.params;  // Poster ID from URL parameter
+
+    // Find and delete the poster by ID
+    const poster = await Poster.findByIdAndDelete(posterId);
+
+    if (!poster) {
+      return res.status(404).json({ message: 'Poster not found' });
+    }
+
+    // Optionally, delete the image files from the server if you no longer need them
+    // (Implementing file system deletion would require the 'fs' module and careful handling of the files)
+
+    res.status(200).json({ message: 'Poster deleted successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error deleting poster', error });
+  }
+};
+
+
   
   
 // ✅ Get all posters
