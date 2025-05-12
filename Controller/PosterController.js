@@ -17,19 +17,19 @@ export const createPoster = async (req, res) => {
     let images = [];
 
     if (req.files['images']) {
-      images = req.files['images'].map(file => file.filename); // If 'images' field exists, it's multiple files
+      images = req.files['images'].map(file => `uploads/${file.filename}`); // Prepend 'uploads/' to the filename for multiple files
     }
 
     if (req.files['image']) {
       // If 'image' field exists, it's a single file
-      images.push(req.files['image'][0].filename);
+      images.push(`uploads/${req.files['image'][0].filename}`); // Prepend 'uploads/' to the filename for a single file
     }
 
     const newPoster = new Poster({
       name,
       categoryName,
       price,
-      images,  // Store all image filenames (single or multiple)
+      images,  // Store all image URLs with 'uploads/' path
       description,
       size,
       festivalDate: festivalDate || null, // Save festival date as string
@@ -39,6 +39,7 @@ export const createPoster = async (req, res) => {
 
     const savedPoster = await newPoster.save();
 
+    // Send the saved poster response, including the images with 'uploads/' path
     res.status(201).json(savedPoster);
   } catch (error) {
     res.status(500).json({ message: 'Error creating poster', error });
@@ -56,6 +57,25 @@ export const getAllPosters = async (req, res) => {
     res.status(500).json({ message: 'Error fetching posters', error });
   }
 };
+
+
+// ✅ Get posters by categoryName
+export const getPostersByCategory = async (req, res) => {
+  try {
+    const { categoryName } = req.body;
+
+    if (!categoryName) {
+      return res.status(400).json({ message: 'categoryName is required' });
+    }
+
+    const posters = await Poster.find({ categoryName }).sort({ createdAt: -1 });
+
+    res.status(200).json(posters);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching posters by categoryName', error });
+  }
+};
+
 
 // ✅ Get all posters from "Beauty Products" category
 export const getAllPostersBeauty = async (req, res) => {

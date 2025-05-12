@@ -19,8 +19,8 @@ const userSchema = new mongoose.Schema({
   otp: {
     type: String,
   },
-   // Added fields as strings
-   dob: {
+  // Added fields as strings
+  dob: {
     type: String, // Date of Birth as String
   },
   marriageAnniversaryDate: {
@@ -30,8 +30,8 @@ const userSchema = new mongoose.Schema({
     type: Schema.Types.ObjectId,
     ref: 'Booking', // Reference to Booking model
   }],
-   // Customers field with an array of customers inside the same schema
-   customers: [
+  // Customers field with an array of customers inside the same schema
+  customers: [
     {
       name: { type: String, required: false },
       email: { type: String, required: false, unique: true },
@@ -46,8 +46,8 @@ const userSchema = new mongoose.Schema({
     type: String,
     default: 'default-profile-image.jpg', // Optional default image
   },
-   // other fields
-   subscribedPlans: [
+  // other fields
+  subscribedPlans: [
     {
       planId: {
         type: mongoose.Schema.Types.ObjectId,
@@ -63,9 +63,13 @@ const userSchema = new mongoose.Schema({
     },
   ],
   myBookings: [{
-  type: mongoose.Schema.Types.ObjectId,
-  ref: 'Order'
-}],
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Order'
+  }],
+  myStories: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'Story' // Referring to the Story model
+  }],
 }, {
   timestamps: true  // CreatedAt and UpdatedAt fields automatically
 });

@@ -8,7 +8,8 @@ import {
   getAllPostersBeauty,
   getChemicalPosters,
   getClothingPosters,
-  getUgadiPosters
+  getUgadiPosters,
+  getPostersByCategory
 } from '../Controller/PosterController.js';
 import uploads from '../config/uploadConfig.js';
 
@@ -16,6 +17,7 @@ const router = express.Router();
 
 router.post('/create-poster', uploads, createPoster);
 router.get('/getallposter', getAllPosters); 
+router.get('/getposterbycategory', getPostersByCategory); 
 router.post('/festival', getPostersByFestivalDates); 
 router.get('/single-poster/:id', getSinglePoster);    // GET /api/posters/:id
 router.get('/beautyposter', getAllPostersBeauty); 
