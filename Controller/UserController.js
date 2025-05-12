@@ -464,50 +464,55 @@ export const checkUserBirthday = async (req, res) => {
 };
 
 
+// ✅ Upload story (image, video, audio) for a user
 export const postStory = async (req, res) => {
   try {
     const { userId } = req.params;
     const { caption } = req.body;
 
-    // Validate presence of files in any of the accepted fields
-    const fileFields = ['file', 'image', 'images'];
+    if (!userId) {
+      return res.status(400).json({ message: "User ID is required." });
+    }
+
+    const fileFields = ['file', 'image', 'images', 'video', 'videos', 'audio', 'audios'];
     const uploadedFiles = fileFields.flatMap(field => req.files?.[field] || []);
 
     if (uploadedFiles.length === 0) {
-      return res.status(400).json({ message: "At least one image or video is required." });
+      return res.status(400).json({ message: "At least one media file (image, video, or audio) is required." });
     }
 
     const images = [];
     const videos = [];
+    const audios = [];
 
-    // Normalize paths and separate into images/videos
     uploadedFiles.forEach(file => {
-      const normalizedPath = file.path.replace(/\\/g, '/'); // Windows compatibility
-      if (file.mimetype.startsWith('image')) {
-        images.push(normalizedPath);
-      } else if (file.mimetype.startsWith('video')) {
-        videos.push(normalizedPath);
-      }
+      const normalizedPath = file.path.replace(/\\/g, '/');
+      if (file.mimetype.startsWith('image')) images.push(normalizedPath);
+      else if (file.mimetype.startsWith('video')) videos.push(normalizedPath);
+      else if (file.mimetype.startsWith('audio')) audios.push(normalizedPath);
     });
 
-    // Set 24-hour expiry
+    if (images.length === 0 && videos.length === 0 && audios.length === 0) {
+      return res.status(400).json({ message: "Only image, video, or audio files are allowed." });
+    }
+
     const expiredAt = new Date();
     expiredAt.setHours(expiredAt.getHours() + 24);
 
-    // Create and save story
     const newStory = new Story({
       user: userId,
       images,
       videos,
+      audios,
       caption,
       expired_at: expiredAt
     });
 
     await newStory.save();
 
-    // Update user story list
+    // ✅ Push the new story into the user's myStories array instead of replacing it
     await User.findByIdAndUpdate(userId, {
-      $push: { myStories: newStory._id }
+      $push: { myStories: newStory._id } // Adding to the array, not replacing
     });
 
     const user = await User.findById(userId);
@@ -520,6 +525,7 @@ export const postStory = async (req, res) => {
         caption: newStory.caption,
         images: newStory.images,
         videos: newStory.videos,
+        audios: newStory.audios,
         expired_at: newStory.expired_at,
         user_name: user.name || null,
         user_mobile: user.mobile || null
@@ -527,9 +533,10 @@ export const postStory = async (req, res) => {
     });
   } catch (error) {
     console.error("Error posting story:", error);
-    res.status(500).json({ message: "Something went wrong!" });
+    res.status(500).json({ message: "Something went wrong!", error });
   }
 };
+
 
 
 
@@ -553,29 +560,29 @@ export const getAllStories = async (req, res) => {
 };
 
 
-// Controller to get stories by userId
+// ✅ Get user's all stories
 export const getUserStories = async (req, res) => {
   try {
-    const { userId } = req.params; // Get userId from the URL parameter
+    const { userId } = req.params;  // User ID from params
 
-    // Fetch stories for the given user
-    const stories = await Story.find({ user: userId }).sort({ expired_at: 1 });
+    // Find the user by userId
+    const user = await User.findById(userId).populate('myStories'); // Populate 'myStories' field to get complete story details
 
-    // Check if the user has any stories
-    if (stories.length === 0) {
-      return res.status(404).json({ message: "No stories found for this user." });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
     }
 
-    // Return the user's stories
+    // If user exists, return the user's stories
     res.status(200).json({
-      message: "User stories fetched successfully!",
-      stories
+      message: "User's stories retrieved successfully!",
+      stories: user.myStories,  // The populated stories will be here
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Something went wrong!" });
+    console.error("Error fetching user's stories:", error);
+    res.status(500).json({ message: "Something went wrong!", error });
   }
 };
+
 
 
 
