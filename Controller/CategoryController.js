@@ -3,9 +3,10 @@ export const createCategory = async (req, res) => {
   try {
     const { categoryName, subCategoryName } = req.body;
 
-    // 🛠️ Access file properly from req.files
-    const imageFile = req.files && req.files.image ? req.files.image[0] : null;
-    const image = imageFile ? imageFile.filename : null;
+    let image = "";
+    if (req.files && req.files['image']) {
+      image = `uploads/${req.files['image'][0].filename}`;
+    }
 
     const newCategory = new Category({
       categoryName,
@@ -15,16 +16,13 @@ export const createCategory = async (req, res) => {
 
     const savedCategory = await newCategory.save();
 
-    res.status(201).json({
-      success: true,
-      message: "Category created successfully",
-      category: savedCategory,
-    });
+    res.status(201).json(savedCategory);
   } catch (error) {
     console.error("Error creating category:", error);
-    res.status(500).json({ success: false, message: "Server error" });
+    res.status(500).json({ message: "Error creating category", error });
   }
 };
+
 
 
 // 📦 Get all categories
